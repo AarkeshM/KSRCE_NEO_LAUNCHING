@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>College Website Launch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- RESET & BASICS --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: #000;
+            overflow: hidden; /* Prevents scrollbars during shake */
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* --- STARFIELD BACKGROUND --- */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.8;
+        }
+
+        /* --- UI CONTAINER --- */
+        .container {
+            z-index: 10;
+            text-align: center;
+            position: relative;
+            width: 90%;
+            max-width: 1200px;
+            padding: 20px;
+        }
+
+        /* --- THE RESPONSIVE LAUNCH BUTTON --- */
+        #launchBtn {
+            /* Responsive Font Size: Min 1.2rem, Max 2.5rem */
+            font-size: clamp(1.2rem, 5vw, 2.5rem);
+            padding: clamp(15px, 3vw, 25px) clamp(30px, 5vw, 60px);
+            
+            background: rgba(0, 0, 0, 0.5); /* Slight transparency */
+            backdrop-filter: blur(5px);
+            color: #0ff; /* Cyan Neon */
+            border: 2px solid #0ff;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: clamp(2px, 1vw, 5px);
+            font-weight: 900;
+            box-shadow: 0 0 15px #0ff, inset 0 0 15px #0ff;
+            transition: 0.3s;
+            animation: pulseBtn 2s infinite;
+            white-space: nowrap; /* Prevents text wrapping */
+            -webkit-tap-highlight-color: transparent; /* Removes blue highlight on mobile */
+        }
+
+        #launchBtn:hover, #launchBtn:active {
+            background: #0ff;
+            color: #000;
+            box-shadow: 0 0 50px #0ff, inset 0 0 20px #0ff;
+            transform: scale(0.98);
+        }
+
+        @keyframes pulseBtn {
+            0% { transform: scale(1); box-shadow: 0 0 15px #0ff; }
+            50% { transform: scale(1.05); box-shadow: 0 0 30px #0ff; }
+            100% { transform: scale(1); box-shadow: 0 0 15px #0ff; }
+        }
+
+        /* --- RESPONSIVE COUNTDOWN TIMER --- */
+        #countdownBox {
+            display: none;
+            /* Massive responsive text: Min 5rem, Preferred 20vw, Max 12rem */
+            font-size: clamp(5rem, 20vw, 12rem); 
+            font-weight: 900;
+            color: #ff0055;
+            text-shadow: 0 0 30px #ff0055;
+            animation: glitch 1s infinite;
+            line-height: 1;
+        }
+
+        .message {
+            /* Responsive Message: Min 1rem, Max 2rem */
+            font-size: clamp(1rem, 3vw, 2rem);
+            margin-top: 20px;
+            letter-spacing: 2px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes zoomCount {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Shake Effect */
+        .shake {
+            animation: shakeAnim 0.5s infinite;
+        }
+
+        @keyframes shakeAnim {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        /* Flash White Screen */
+        #flash-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        /* Logo/Brand (Optional - shows above button) */
+        .logo-text {
+            color: white;
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            margin-bottom: 2rem;
+            opacity: 0.7;
+            letter-spacing: 3px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="starfield"></canvas>
+
+    <div id="flash-overlay"></div>
+
+    <div class="container" id="mainContainer">
+        <div class="logo-text">KSRCENEO</div>
+
+        <button id="launchBtn" onclick="startLaunch()">INITIATE LAUNCH</button>
+        
+        <div id="countdownBox">
+            <div id="timer">10</div>
+            <div class="message">SYSTEM BOOTING...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. RESPONSIVE STARFIELD BACKGROUND ---
+        const canvas = document.getElementById("starfield");
+        const ctx = canvas.getContext("2d");
+        let width, height;
+        let stars = [];
+        let speed = 2; 
+
+        // Initial check for mobile
+        const isMobile = window.innerWidth < 768;
+        // Reduce stars on mobile for performance
+        const starCount = isMobile ? 150 : 400; 
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.z = Math.random() * width; 
+            }
+            update() {
+                this.z -= speed;
+                if (this.z <= 0) {
+                    this.z = width;
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                }
+            }
+            draw() {
+                let x = (this.x - width / 2) * (width / this.z);
+                let y = (this.y - height / 2) * (width / this.z);
+                let s = 1.5 * (width / this.z);
+                
+                // Center coordinates
+                x = x + width / 2;
+                y = y + height / 2;
+
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(x, y, s, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for(let i=0; i<starCount; i++) stars.push(new Star());
+
+        function animateStars() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+            ctx.fillRect(0, 0, width, height);
+            
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+            requestAnimationFrame(animateStars);
+        }
+        animateStars();
+
+
+        // --- 2. LAUNCH LOGIC ---
+        function startLaunch() {
+            const btn = document.getElementById('launchBtn');
+            const logo = document.querySelector('.logo-text');
+            const box = document.getElementById('countdownBox');
+            const timerDisplay = document.getElementById('timer');
+            const msg = document.querySelector('.message');
+            
+            // Hide Button & Logo, Show Timer
+            btn.style.display = 'none';
+            logo.style.display = 'none';
+            box.style.display = 'block';
+
+            // Speed up stars
+            speed = 20; 
+
+            let timeLeft = 10;
+            
+            const countdownInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.innerText = timeLeft;
+                
+                // Reset animation to make it pump every second
+                timerDisplay.style.animation = 'none';
+                timerDisplay.offsetHeight; /* trigger reflow */
+                timerDisplay.style.animation = 'zoomCount 0.5s ease-out';
+
+                // Messages
+                if(timeLeft === 7) msg.innerText = "ENGINES ENGAGED...";
+                if(timeLeft === 5) msg.innerText = "CALIBRATING...";
+                if(timeLeft === 3) {
+                    msg.innerText = "PREPARE FOR LIFT OFF";
+                    speed = 60; // Hyper speed
+                    document.body.classList.add('shake'); // Shake screen
+                    timerDisplay.style.color = "#fff"; 
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    timerDisplay.innerText = "0";
+                    
+                    // Flash
+                    document.getElementById('flash-overlay').style.opacity = '1';
+                    
+                    // Redirect
+                    setTimeout(() => {
+                        window.location.href = "https://www.ksrceneo.com/";
+                    }, 500); 
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
